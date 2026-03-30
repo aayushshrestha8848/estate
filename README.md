@@ -1,5 +1,5 @@
 # estate
 
-to run backend :- npm start
-/n
-to run frontend :- npm run dev
+To run backend :- npm start
+<br>
+To run frontend :- npm run dev
