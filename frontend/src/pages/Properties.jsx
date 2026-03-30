@@ -3,11 +3,12 @@ import DashboardLayout from '../components/DashboardLayout';
 import PropertyCard from '../components/PropertyCard';
 import api from '../utils/api';
 import { useNavigate } from 'react-router-dom';
+import { useFav } from '../context/FavContext';
 
 const Properties = () => {
+  const { favourites, toggleFavorite, loadingFavs } = useFav();
   const [properties, setProperties] = useState([]);
-  const [favourites, setFavourites] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingProps, setLoadingProps] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
@@ -20,21 +21,10 @@ const Properties = () => {
   useEffect(() => {
     const fetchProperties = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const [propsRes, favsRes] = await Promise.all([
-          api.get('/api/properties?page=1'),
-          api.get('/api/favourites', { headers: { Authorization: `Bearer ${token}` } })
-        ]);
-
-        const newProps = propsRes.data?.data || propsRes.data?.properties || propsRes.data || [];
+        const res = await api.get('/api/properties?page=1');
+        const newProps = res.data?.data || res.data?.properties || res.data || [];
         setProperties(Array.isArray(newProps) ? newProps : []);
         if (Array.isArray(newProps) && newProps.length < 9) setHasMore(false);
-        
-        let favData = favsRes.data?.data || favsRes.data?.favourites || favsRes.data || [];
-        if (!Array.isArray(favData)) favData = [];
-        
-        const favIds = favData.map(fav => fav.propertyId?._id || fav.propertyId || fav.property?._id || fav._id);
-        setFavourites(favIds);
       } catch (err) {
         if (err.response?.status === 401) {
           localStorage.removeItem('token');
@@ -44,25 +34,11 @@ const Properties = () => {
           setError('Failed to fetch data.');
         }
       } finally {
-        setLoading(false);
+        setLoadingProps(false);
       }
     };
     fetchProperties();
   }, [navigate]);
-
-  const toggleFavorite = async (propertyId, isFavorite) => {
-    try {
-      if (isFavorite) {
-        await api.delete(`/api/favourites/${propertyId}`);
-        setFavourites(favourites.filter(id => id !== propertyId));
-      } else {
-        await api.post(`/api/favourites/${propertyId}`);
-        setFavourites([...favourites, propertyId]);
-      }
-    } catch (err) {
-      console.error('Failed to update favourite status:', err);
-    }
-  };
 
   const loadMoreProperties = async () => {
     try {
@@ -71,7 +47,7 @@ const Properties = () => {
       const res = await api.get(`/api/properties?page=${nextPage}`);
       const newProps = res.data?.data || res.data?.properties || res.data || [];
       const propsArray = Array.isArray(newProps) ? newProps : [];
-      
+
       setProperties([...properties, ...propsArray]);
       setPage(nextPage);
       if (propsArray.length < 9) setHasMore(false);
@@ -93,22 +69,24 @@ const Properties = () => {
     return matchesSearch && matchesType && matchesLocation;
   });
 
-  if (loading) return <DashboardLayout><div className="screen-center">Loading properties...</div></DashboardLayout>;
+  const isLoading = loadingProps || loadingFavs;
+
+  if (isLoading) return <DashboardLayout><div className="screen-center"><div className="spinner"></div></div></DashboardLayout>;
 
   return (
     <DashboardLayout>
       <div className="tab-view fade-in">
         <div className="view-header">
           <h2>Available Properties</h2>
-          <p>Find your next perfect property from our extensive catalog.</p>
+          <p>Find your next perfect property from our extensive catalog.</p>    
         </div>
         {error && <div className="alert-error">{error}</div>}
         <div className="filters-container">
           <div className="search-bar">
-            <span className="icon">🔍</span>
-            <input 
-              type="text" 
-              placeholder="Search by title or location..." 
+            <span className="icon"></span>
+            <input
+              type="text"
+              placeholder="Search by title or location..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -138,18 +116,18 @@ const Properties = () => {
           <>
             <div className="properties-grid">
               {filteredProperties.map(property => (
-                <PropertyCard 
-                  key={property._id} 
-                  property={property} 
+                <PropertyCard
+                  key={property._id}
+                  property={property}
                   isFavorite={favourites.includes(property._id)}
                   onToggleFavorite={toggleFavorite}
                 />
               ))}
             </div>
-            {hasMore && !searchQuery && !filterType && !filterLocation && (
-              <div className="load-more-container" style={{textAlign: 'center', marginTop: '20px'}}>
-                <button onClick={loadMoreProperties} disabled={loadingMore} className="btn-primary" style={{padding: '10px 20px', borderRadius: '5px'}}>
-                  {loadingMore ? 'Loading...' : 'Load More Options'}
+            {hasMore && !searchQuery && !filterType && !filterLocation && (     
+              <div className="load-more-container">
+                <button onClick={loadMoreProperties} disabled={loadingMore} className="btn-primary">        
+                  {loadingMore ? 'Loading ...' : 'Load More Options'}
                 </button>
               </div>
             )}

@@ -1,24 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
-import api from '../utils/api';
 import { useNavigate } from 'react-router-dom';
 
 const DashboardLayout = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user] = useState(() => {
+    const stored = localStorage.getItem('user');
+    return stored ? JSON.parse(stored) : null;
+  });
   const navigate = useNavigate();
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    } else {
+    if (!user) {
       navigate('/login');
     }
-    
+
     // Clean up theme artifacts
     document.documentElement.removeAttribute('data-theme');
     localStorage.removeItem('theme');
-  }, [navigate]);
+  }, [navigate, user]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -38,3 +37,4 @@ const DashboardLayout = ({ children }) => {
 };
 
 export default DashboardLayout;
+// `nexport default DashboardLayout;

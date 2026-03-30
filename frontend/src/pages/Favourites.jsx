@@ -1,32 +1,24 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import PropertyCard from '../components/PropertyCard';
 import api from '../utils/api';
 import { useNavigate } from 'react-router-dom';
+import { useFav } from '../context/FavContext';
 
 const Favourites = () => {
+  const { favourites, toggleFavorite, loadingFavs } = useFav();
   const [favouriteProperties, setFavouriteProperties] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingProps, setLoadingProps] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchFavourites = async () => {
+    const fetchProps = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const [propsRes, favsRes] = await Promise.all([
-          api.get('/api/properties?page=1'),
-          api.get('/api/favourites', { headers: { Authorization: `Bearer ${token}` } })
-        ]);
-
-        const allProps = Array.isArray(propsRes.data?.data) ? propsRes.data.data : propsRes.data || [];
-        
-        let favData = favsRes.data?.data || favsRes.data?.favourites || favsRes.data || [];
-        if (!Array.isArray(favData)) favData = [];
-        
-        const favIds = favData.map(fav => fav.propertyId?._id || fav.propertyId || fav.property?._id || fav._id);
-        
-        setFavouriteProperties(allProps.filter(p => favIds.includes(p._id)));
+        const res = await api.get('/api/properties?page=1&limit=100');
+        const allProps = Array.isArray(res.data?.data) ? res.data.data : res.data || [];
+        const favProps = allProps.filter(p => favourites.includes(p._id));
+        setFavouriteProperties(favProps);
       } catch (err) {
         if (err.response?.status === 401) {
           localStorage.removeItem('token');
@@ -36,37 +28,27 @@ const Favourites = () => {
           setError('Failed to fetch data.');
         }
       } finally {
-        setLoading(false);
+        setLoadingProps(false);
       }
     };
-    fetchFavourites();
-  }, [navigate]);
-
-  const toggleFavorite = async (propertyId, isFavorite) => {
-    try {
-      if (isFavorite) {
-        await api.delete(`/api/favourites/${propertyId}`);
-        setFavouriteProperties(favouriteProperties.filter(p => p._id !== propertyId));
-      } else {
-        await api.post(`/api/favourites/${propertyId}`);
-        // Not typically doing a POST here in favourites view, but handled for completion
-      }
-    } catch (err) {
-      console.error('Failed to update favourite status:', err);
+    if (!loadingFavs) {
+      fetchProps();
     }
-  };
+  }, [loadingFavs, favourites, navigate]);
 
-  if (loading) return <DashboardLayout><div className="screen-center">Loading favourites...</div></DashboardLayout>;
+  const isLoading = loadingProps || loadingFavs;
+
+  if (isLoading) return <DashboardLayout><div className="screen-center"><div className="spinner"></div></div></DashboardLayout>;
 
   return (
     <DashboardLayout>
       <div className="tab-view fade-in">
         <div className="view-header">
-          <h2>My Favourites </h2>
+          <h2>My Favourites</h2>
           <p>Properties you have saved for later review.</p>
         </div>
         {error && <div className="alert-error">{error}</div>}
-        
+
         {favouriteProperties.length === 0 ? (
           <div className="empty-state">
             <p className="no-favs">No favourites yet. Start exploring properties!</p>
@@ -74,9 +56,9 @@ const Favourites = () => {
         ) : (
           <div className="properties-grid">
             {favouriteProperties.map(property => (
-              <PropertyCard 
-                key={`fav-${property._id}`} 
-                property={property} 
+              <PropertyCard
+                key={property._id}
+                property={property}
                 isFavorite={true}
                 onToggleFavorite={toggleFavorite}
               />
@@ -89,3 +71,4 @@ const Favourites = () => {
 };
 
 export default Favourites;
+

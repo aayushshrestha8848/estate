@@ -1,7 +1,6 @@
 const Property = require('../models/Property');
 
-// @desc    Get all properties
-// @route   GET /api/properties
+
 const getProperties = async (req, res) => {
   try {
     const page = parseInt(req.query.page, 10) || 1;
@@ -27,8 +26,7 @@ const getProperties = async (req, res) => {
   }
 };
 
-// @desc    Get single property
-// @route   GET /api/properties/:id
+
 const getPropertyById = async (req, res) => {
   try {
     const property = await Property.findById(req.params.id);
@@ -44,8 +42,7 @@ const getPropertyById = async (req, res) => {
   }
 };
 
-// @desc    Create a property
-// @route   POST /api/properties
+
 const createProperty = async (req, res) => {
   try {
     const { 
@@ -73,7 +70,7 @@ const createProperty = async (req, res) => {
   }
 };
 
-// @desc    Update a property
+
 // @route   PUT /api/properties/:id
 const updateProperty = async (req, res) => {
   try {
@@ -96,11 +93,9 @@ const updateProperty = async (req, res) => {
   }
 };
 
-// @desc    Create bulk properties
-// @route   POST /api/properties/bulk
 const createBulkProperties = async (req, res) => {
   try {
-    const properties = req.body; // Expects an array of objects
+    const properties = req.body; 
     if (!Array.isArray(properties)) {
       return res.status(400).json({ message: 'Input must be an array of properties' });
     }
@@ -124,8 +119,7 @@ const createBulkProperties = async (req, res) => {
   }
 };
 
-// @desc    Delete a property
-// @route   DELETE /api/properties/:id
+
 const deleteProperty = async (req, res) => {
   try {
     const property = await Property.findByIdAndDelete(req.params.id);
@@ -143,8 +137,7 @@ const deleteProperty = async (req, res) => {
   }
 };
 
-// @desc    Clear all properties
-// @route   DELETE /api/properties
+
 const clearAllProperties = async (req, res) => {
   try {
     await Property.deleteMany({});
